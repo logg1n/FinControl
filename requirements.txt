@@ -1,0 +1,27 @@
+# Django и экосистема
+Django==4.2.7
+django-environ==0.10.0
+django-crispy-forms==2.0
+
+# База данных
+psycopg2-binary==2.9.9  # PostgreSQL
+# SQLite встроен, отдельной зависимости не требует
+
+# Telegram-бот
+aiogram==3.0.0
+
+# Аналитика и визуализация
+pandas==2.2.2
+matplotlib==3.8.0
+plotly==5.18.0
+
+# Планировщик задач
+python-crontab==3.0.0
+
+# Экспорт отчётов (опционально)
+openpyxl==3.1.2
+reportlab==4.0.4
+
+# Фоновые задачи (опционально)
+celery==5.3.6
+redis==5.0.1
