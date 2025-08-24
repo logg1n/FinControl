@@ -1,0 +1,158 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>{% if form.instance.pk %}Редактировать{% else %}Добавить{% endif %} транзакцию</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <p>{{ form.amount.label }}: {{ form.amount }}</p>
+    <p>{{ form.date.label }}: {{ form.date }}</p>
+    <p>{{ form.type.label }}: {{ form.type }}</p>
+    <p>{{ form.payment_method.label }}: {{ form.payment_method }}</p>
+
+    <p>
+        <label for="currency_search">Валюта:</label><br>
+        <input type="text" id="currency_search" placeholder="Поиск валюты..." style="width:200px;">
+        <br>
+        <select id="id_currency" name="currency" size="8" style="width:200px;">
+            {% for code, name in currencies %}
+                <option value="{{ code }}" {% if form.instance.currency == code %}selected{% endif %}>
+                    {{ code }} — {{ name }}
+                </option>
+            {% endfor %}
+        </select>
+    </p>
+
+    <p>
+        <label for="id_category">Категория:</label><br>
+        <select id="id_category" name="category">
+            <option value="">—</option>
+            {% for c in categories %}
+                <option value="{{ c }}" {% if form.instance.category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+            <option value="__add_new__">+ Добавить категорию…</option>
+        </select>
+    </p>
+
+    <p>
+        <label for="id_subcategory">Подкатегория:</label><br>
+        <select id="id_subcategory" name="subcategory">
+            <option value="">—</option>
+            {% if form.instance.subcategory %}
+                <option value="{{ form.instance.subcategory }}" selected>{{ form.instance.subcategory }}</option>
+            {% endif %}
+            <option value="__add_new__">+ Добавить подкатегорию…</option>
+        </select>
+    </p>
+
+    <p>{{ form.tag.label }}: {{ form.tag }}</p>
+
+    <button type="submit">Сохранить</button>
+</form>
+
+<script>
+const csrfToken = "{{ csrf_token }}";
+
+// ====== Поиск по валютам ======
+const searchInput = document.getElementById("currency_search");
+const currencySelect = document.getElementById("id_currency");
+
+searchInput.addEventListener("input", function() {
+    const query = this.value.toUpperCase();
+    for (let option of currencySelect.options) {
+        const code = option.value.toUpperCase();
+        const text = option.textContent.toUpperCase();
+        option.style.display = (code.startsWith(query) || text.startsWith(query) || text.includes(query)) ? "" : "none";
+    }
+});
+
+currencySelect.addEventListener("change", function() {
+    this.value = this.value.toUpperCase();
+});
+
+// ====== Подкатегории ======
+function refreshSubcategories(category, selected = "") {
+    if (!category) {
+        const subSel = document.getElementById("id_subcategory");
+        subSel.innerHTML = '<option value="">—</option><option value="__add_new__">+ Добавить подкатегорию…</option>';
+        return;
+    }
+    fetch("{% url 'subcategories_json' %}?category=" + encodeURIComponent(category), {credentials: "same-origin"})
+        .then(r => r.json())
+        .then(data => {
+            const subSel = document.getElementById("id_subcategory");
+            subSel.innerHTML = '<option value="">—</option>';
+            data.subcategories.forEach(s => {
+                subSel.appendChild(new Option(s, s));
+            });
+            subSel.appendChild(new Option("+ Добавить подкатегорию…", "__add_new__"));
+            if (selected) subSel.value = selected;
+        });
+}
+
+document.getElementById("id_category").addEventListener("change", function() {
+    if (this.value === "__add_new__") {
+        const name = prompt("Введите название новой категории:");
+        if (name) {
+            fetch("{% url 'category_add_ajax' %}", {
+                method: "POST",
+                headers: {"X-CSRFToken": csrfToken, "Content-Type": "application/json"},
+                body: JSON.stringify({ name })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const sel = document.getElementById("id_category");
+                    sel.innerHTML = "";
+                    sel.appendChild(new Option("—", ""));
+                    data.categories.forEach(c => sel.appendChild(new Option(c, c)));
+                    sel.appendChild(new Option("+ Добавить категорию…", "__add_new__"));
+                    sel.value = name;
+                    refreshSubcategories(name);
+                } else {
+                    alert(data.error || "Ошибка добавления");
+                    this.value = "";
+                }
+            });
+        } else {
+            this.value = "";
+        }
+    } else {
+        refreshSubcategories(this.value);
+    }
+});
+
+document.getElementById("id_subcategory").addEventListener("change", function() {
+    if (this.value === "__add_new__") {
+        const category = document.getElementById("id_category").value;
+        if (!category) {
+            alert("Сначала выберите категорию");
+            this.value = "";
+            return;
+        }
+        const name = prompt("Введите название новой подкатегории:");
+        if (name) {
+            fetch("{% url 'subcategory_add_ajax' %}", {
+                method: "POST",
+                headers: {"X-CSRFToken": csrfToken, "Content-Type": "application/json"},
+                body: JSON.stringify({ category, name })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    const subSel = document.getElementById("id_subcategory");
+                    subSel.innerHTML = '<option value="">—</option>';
+                    data.subcategories.forEach(s => subSel.appendChild(new Option(s, s)));
+                    subSel.appendChild(new Option("+ Добавить подкатегорию…", "__add_new__"));
+                    subSel.value = name;
+                } else {
+                    alert(data.error || "Ошибка добавления");
+                    this.value = "";
+                }
+            });
+        } else {
+            this.value = "";
+        }
+    }
+});
+</script>
+{% endblock %}

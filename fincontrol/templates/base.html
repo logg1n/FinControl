@@ -1,0 +1,73 @@
+ 
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>FinControl</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f5f5f5;
+        }
+        header {
+            background: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 20px;
+            display: inline-block;
+        }
+        nav {
+            display: inline-block;
+            margin-left: 30px;
+        }
+        nav a {
+            color: white;
+            margin-right: 15px;
+            text-decoration: none;
+        }
+        nav a:hover {
+            text-decoration: underline;
+        }
+        main {
+            padding: 20px;
+            background: white;
+            margin: 20px;
+            border-radius: 5px;
+        }
+        footer {
+            text-align: center;
+            padding: 10px;
+            font-size: 12px;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>💰 FinControl</h1>
+    <nav>
+        {% if user.is_authenticated %}
+            <a href="{% url 'transaction_list' %}">Мои транзакции</a>
+            <a href="{% url 'logout' %}">Выйти</a>
+        {% else %}
+            <a href="{% url 'login' %}">Войти</a>
+            <a href="{% url 'register' %}">Регистрация</a>
+        {% endif %}
+    </nav>
+</header>
+
+<main>
+    {% block content %}{% endblock %}
+</main>
+
+<footer>
+    &copy; {{ now|date:"Y" }} FinControl. Все права защищены.
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Мои транзакции</h2>
+
+<form method="get" class="filter-form">
+    <fieldset>
+        <legend>Фильтры</legend>
+        <label>Сумма от:
+            <input type="number" step="0.01" name="amount_min" value="{{ request.GET.amount_min }}">
+        </label>
+        <label>Сумма до:
+            <input type="number" step="0.01" name="amount_max" value="{{ request.GET.amount_max }}">
+        </label>
+        <label>Диапазон суммы:
+            <input type="number" step="0.01" name="amount_from" placeholder="от" value="{{ request.GET.amount_from }}">
+            <input type="number" step="0.01" name="amount_to" placeholder="до" value="{{ request.GET.amount_to }}">
+        </label>
+        <label>Период:
+            <select name="date_preset">
+                <option value="">---</option>
+                <option value="day" {% if request.GET.date_preset == "day" %}selected{% endif %}>День</option>
+                <option value="week" {% if request.GET.date_preset == "week" %}selected{% endif %}>Неделя</option>
+                <option value="month" {% if request.GET.date_preset == "month" %}selected{% endif %}>Месяц</option>
+                <option value="year" {% if request.GET.date_preset == "year" %}selected{% endif %}>Год</option>
+            </select>
+        </label>
+        <label>Дата от:
+            <input type="date" name="date_from" value="{{ request.GET.date_from }}">
+        </label>
+        <label>Дата до:
+            <input type="date" name="date_to" value="{{ request.GET.date_to }}">
+        </label>
+        <label>Категория:
+            <input type="text" name="category" value="{{ request.GET.category }}">
+        </label>
+        <label>Подкатегория:
+            <input type="text" name="subcategory" value="{{ request.GET.subcategory }}">
+        </label>
+        <label>Валюта:
+            <input type="text" name="currency" value="{{ request.GET.currency }}">
+        </label>
+        <label>Способ оплаты:
+            <input type="text" name="payment_method" value="{{ request.GET.payment_method }}">
+        </label>
+        <label>Метка:
+            <input type="text" name="tag" value="{{ request.GET.tag }}">
+        </label>
+        <button type="submit">Применить</button>
+        <a href="{% url 'transaction_list' %}">Сбросить</a>
+    </fieldset>
+</form>
+
+<hr>
+
+<table border="1" cellpadding="5">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Сумма</th>
+            <th>Валюта</th>
+            <th>Тип</th>
+            <th>Категория</th>
+            <th>Подкатегория</th>
+            <th>Способ оплаты</th>
+            <th>Метка</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for t in transactions %}
+        <tr>
+            <td>{{ t.date }}</td>
+            <td>{{ t.amount }}</td>
+            <td>{{ t.currency }}</td>
+            <td>{{ t.get_type_display }}</td>
+            <td>{{ t.category }}</td>
+            <td>{{ t.subcategory }}</td>
+            <td>{{ t.get_payment_method_display }}</td>
+            <td>{{ t.tag }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="8">Нет данных</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{% endblock %}
