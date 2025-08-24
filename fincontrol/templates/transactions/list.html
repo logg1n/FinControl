@@ -54,10 +54,6 @@
     </fieldset>
 </form>
 
-<div id="analytics-block" style="margin-bottom: 30px;">
-    Загрузка аналитики...
-</div>
-
 <table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
     <thead>
         <tr>
@@ -93,26 +89,4 @@
         {% endfor %}
     </tbody>
 </table>
-
-<script>
-function loadAnalytics() {
-    const params = new URLSearchParams(new FormData(document.getElementById("filters-form")));
-    fetch("{% url 'analytics_block' %}?" + params.toString(), {credentials: "same-origin"})
-        .then(r => r.text())
-        .then(html => {
-            document.getElementById("analytics-block").innerHTML = html;
-        });
-}
-
-// Загружаем при старте
-loadAnalytics();
-
-// Перехватываем отправку формы фильтров
-document.getElementById("filters-form").addEventListener("submit", function(e) {
-    e.preventDefault();
-    // Обновляем графики
-    loadAnalytics();
-    // Если нужно, можно сделать AJAX и для таблицы
-});
-</script>
 {% endblock %}

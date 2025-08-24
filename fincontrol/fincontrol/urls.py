@@ -1,3 +1,4 @@
+# fincontrol/urls.py
 """
 URL configuration for fincontrol project.
 
@@ -20,10 +21,10 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 
+
 urlpatterns = [
-    path("", lambda request: redirect("transaction_list")),  # редирект с главной
     path("admin/", admin.site.urls),
-    path("transactions/", include("transactions.urls")),     # ← подключаем
-    path("users/", include("users.urls")),
-    path("dashboard/", include("dashboard.urls")),  # ← добавили
+    path("transactions/", include("transactions.urls")),
+    path("dashboard/", include("dashboard.urls")),
+    path("", include("users.urls")),
 ]

@@ -1,35 +1,67 @@
-# dashboard/views.py
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
+from django.template.loader import render_to_string
+from django.http import HttpResponse
 import pandas as pd
 import plotly.express as px
-from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+
 from transactions.models import Transaction
 from transactions.filters import TransactionFilters
 
+
 @login_required
-def analytics_block(request):
+def dashboard_block(request):
+    """
+    Возвращает HTML-фрагмент с KPI и графиками для AJAX-подгрузки.
+    """
     qs = Transaction.objects.filter(user=request.user)
     qs = TransactionFilters(qs).apply(request.GET)
-    df = pd.DataFrame(qs.values())
 
-    if df.empty:
-        return render(request, "dashboard/analytics_block.html", {"no_data": True})
+    # KPI
+    total_income = qs.filter(type='income').aggregate(sum=Sum('amount'))['sum'] or 0
+    total_expense = qs.filter(type='expense').aggregate(sum=Sum('amount'))['sum'] or 0
+    balance = total_income - total_expense
 
-    df['date'] = pd.to_datetime(df['date'])
+    # DataFrame для графиков
+    df = pd.DataFrame(qs.values("date", "type", "amount", "category", "subcategory"))
+    fig_line_html = fig_pie_html = fig_bar_html = None
 
-    daily = df.groupby(['date', 'type'])['amount'].sum().reset_index()
-    fig_line = px.line(daily, x='date', y='amount', color='type', title="Динамика доходов и расходов", markers=True)
+    if not df.empty:
+        df = df.dropna(subset=['date', 'amount'])
+        df['date'] = pd.to_datetime(df['date'])
 
-    expenses = df[df['type'] == 'expense']
-    cat_sum = expenses.groupby('category')['amount'].sum().reset_index()
-    fig_pie = px.pie(cat_sum, names='category', values='amount', title="Распределение расходов по категориям", hole=0.4)
+        # Линия
+        daily = df.groupby(['date', 'type'])['amount'].sum().reset_index()
+        if not daily.empty:
+            fig_line_html = px.line(
+                daily, x='date', y='amount', color='type',
+                title="Динамика доходов и расходов", markers=True
+            ).to_html(full_html=False)
 
-    sub_sum = expenses.groupby('subcategory')['amount'].sum().reset_index()
-    sub_sum = sub_sum.sort_values('amount', ascending=False).head(5)
-    fig_bar = px.bar(sub_sum, x='amount', y='subcategory', orientation='h', title="Топ‑5 подкатегорий по расходам")
+        # Круговая и топ‑5
+        expenses = df[df['type'] == 'expense']
+        if not expenses.empty:
+            cat_sum = expenses.groupby('category')['amount'].sum().reset_index()
+            if not cat_sum.empty:
+                fig_pie_html = px.pie(
+                    cat_sum, names='category', values='amount',
+                    title="Распределение расходов по категориям", hole=0.4
+                ).to_html(full_html=False)
 
-    return render(request, "dashboard/analytics_block.html", {
-        "fig_line": fig_line.to_html(full_html=False),
-        "fig_pie": fig_pie.to_html(full_html=False),
-        "fig_bar": fig_bar.to_html(full_html=False),
+            sub_sum = expenses.groupby('subcategory')['amount'].sum().reset_index()
+            sub_sum = sub_sum.sort_values('amount', ascending=False).head(5)
+            if not sub_sum.empty:
+                fig_bar_html = px.bar(
+                    sub_sum, x='amount', y='subcategory', orientation='h',
+                    title="Топ‑5 подкатегорий по расходам"
+                ).to_html(full_html=False)
+
+    html = render_to_string("dashboard/_dashboard_block.html", {
+        "total_income": total_income,
+        "total_expense": total_expense,
+        "balance": balance,
+        "fig_line": fig_line_html,
+        "fig_pie": fig_pie_html,
+        "fig_bar": fig_bar_html
     })
+    return HttpResponse(html)

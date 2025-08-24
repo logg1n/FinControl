@@ -1,0 +1,18 @@
+{% for t in transactions %}
+<tr>
+    <td>{{ t.date|date:"Y-m-d" }}</td>
+    <td>{{ t.amount }}</td>
+    <td>{{ t.currency }}</td>
+    <td>{{ t.get_type_display }}</td>
+    <td>{{ t.category }}</td>
+    <td>{{ t.subcategory }}</td>
+    <td>{{ t.get_payment_method_display }}</td>
+    <td>{{ t.tag }}</td>
+    <td>
+        <a href="{% url 'transaction_edit' t.id %}">✏️</a>
+        <a href="{% url 'transaction_delete' t.id %}">🗑️</a>
+    </td>
+</tr>
+{% empty %}
+<tr><td colspan="9">Нет транзакций</td></tr>
+{% endfor %}

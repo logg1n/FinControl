@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Мои финансы</h2>
+
+<form id="filters-form" method="get" style="margin-bottom: 20px;">
+    <label>Дата от: <input type="date" name="date_from" value="{{ request.GET.date_from }}"></label>
+    <label>Дата до: <input type="date" name="date_to" value="{{ request.GET.date_to }}"></label>
+    <label>Категория:
+        <select name="category">
+            <option value="">—</option>
+            {% for c in categories %}
+                <option value="{{ c }}" {% if request.GET.category == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </label>
+    <label>Валюта:
+        <select name="currency">
+            <option value="">—</option>
+            {% for code, name in currencies %}
+                <option value="{{ code }}" {% if request.GET.currency == code %}selected{% endif %}>
+                    {{ code }} — {{ name }}
+                </option>
+            {% endfor %}
+        </select>
+    </label>
+    <button type="submit">Применить</button>
+    <a href="{% url 'transaction_list' %}">Сбросить</a>
+</form>
+
+<!-- KPI + графики -->
+<div id="kpi-block" style="margin-bottom: 30px;">
+    <em>Загрузка аналитики...</em>
+</div>
+
+<h3>Транзакции</h3>
+<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
+    <thead>
+        <tr>
+            <th>Дата</th>
+            <th>Сумма</th>
+            <th>Валюта</th>
+            <th>Тип</th>
+            <th>Категория</th>
+            <th>Подкатегория</th>
+            <th>Способ оплаты</th>
+            <th>Метка</th>
+            <th>Действия</th>
+        </tr>
+    </thead>
+    <tbody id="transactions-body">
+        <tr><td colspan="9"><em>Загрузка...</em></td></tr>
+    </tbody>
+</table>
+
+<script>
+// Функция вставки HTML с выполнением <script>
+function insertWithScripts(container, html) {
+    container.innerHTML = html;
+    container.querySelectorAll("script").forEach(oldScript => {
+        const newScript = document.createElement("script");
+        if (oldScript.src) {
+            newScript.src = oldScript.src;
+        } else {
+            newScript.textContent = oldScript.textContent;
+        }
+        document.body.appendChild(newScript);
+        document.body.removeChild(newScript);
+    });
+}
+
+function loadDashboard() {
+    const params = new URLSearchParams(new FormData(document.getElementById("filters-form")));
+    fetch("{% url 'dashboard_block' %}?" + params.toString(), {credentials: "same-origin"})
+        .then(r => r.text())
+        .then(html => {
+            insertWithScripts(document.getElementById("kpi-block"), html);
+        })
+        .catch(err => {
+            document.getElementById("kpi-block").innerHTML = "<p style='color:red;'>Ошибка загрузки аналитики</p>";
+            console.error(err);
+        });
+}
+
+function loadTransactions() {
+    const params = new URLSearchParams(new FormData(document.getElementById("filters-form")));
+    fetch("{% url 'transactions_table_block' %}?" + params.toString(), {credentials: "same-origin"})
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById("transactions-body").innerHTML = html;
+        })
+        .catch(err => {
+            document.getElementById("transactions-body").innerHTML = "<tr><td colspan='9' style='color:red;'>Ошибка загрузки таблицы</td></tr>";
+            console.error(err);
+        });
+}
+
+function refreshAll() {
+    loadDashboard();
+    loadTransactions();
+}
+
+document.getElementById("filters-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    refreshAll();
+});
+
+// Загружаем при старте
+refreshAll();
+</script>
+{% endblock %}

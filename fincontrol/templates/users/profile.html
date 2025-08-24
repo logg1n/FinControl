@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Мой кабинет</h2>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Сохранить</button>
+</form>
+
+<hr>
+<h3>Привязка Telegram</h3>
+{% if telegram_id %}
+    <p>✅ Привязан (ID: {{ telegram_id }})</p>
+{% else %}
+    {% if telegram_link_code %}
+        <p>Код для привязки: <b>{{ telegram_link_code }}</b></p>
+        <p>В боте отправьте: <code>/link {{ telegram_link_code }}</code></p>
+    {% else %}
+        <form method="post" action="{% url 'generate_telegram_code' %}">
+            {% csrf_token %}
+            <button type="submit">Сгенерировать код</button>
+        </form>
+    {% endif %}
+{% endif %}
+{% endblock %}
