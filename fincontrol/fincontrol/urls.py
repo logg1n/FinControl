@@ -25,6 +25,5 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("transactions/", include("transactions.urls")),     # ← подключаем
     path("users/", include("users.urls")),
+    path("dashboard/", include("dashboard.urls")),  # ← добавили
 ]
-
-

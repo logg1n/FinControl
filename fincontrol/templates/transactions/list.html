@@ -2,57 +2,63 @@
 {% block content %}
 <h2>Мои транзакции</h2>
 
-<form method="get" class="filter-form">
-    <fieldset>
+<form id="filters-form" method="get" style="margin-bottom: 20px;">
+    <fieldset style="border:1px solid #ccc; padding:10px; margin-bottom:10px;">
         <legend>Фильтры</legend>
-        <label>Сумма от:
-            <input type="number" step="0.01" name="amount_min" value="{{ request.GET.amount_min }}">
-        </label>
-        <label>Сумма до:
-            <input type="number" step="0.01" name="amount_max" value="{{ request.GET.amount_max }}">
-        </label>
-        <label>Диапазон суммы:
-            <input type="number" step="0.01" name="amount_from" placeholder="от" value="{{ request.GET.amount_from }}">
-            <input type="number" step="0.01" name="amount_to" placeholder="до" value="{{ request.GET.amount_to }}">
-        </label>
-        <label>Период:
-            <select name="date_preset">
-                <option value="">---</option>
-                <option value="day" {% if request.GET.date_preset == "day" %}selected{% endif %}>День</option>
-                <option value="week" {% if request.GET.date_preset == "week" %}selected{% endif %}>Неделя</option>
-                <option value="month" {% if request.GET.date_preset == "month" %}selected{% endif %}>Месяц</option>
-                <option value="year" {% if request.GET.date_preset == "year" %}selected{% endif %}>Год</option>
+        <label>Сумма от: <input type="number" step="0.01" name="amount_min" value="{{ request.GET.amount_min }}"></label>
+        <label>Сумма до: <input type="number" step="0.01" name="amount_max" value="{{ request.GET.amount_max }}"></label>
+        <br>
+        <label>Дата от: <input type="date" name="date_from" value="{{ request.GET.date_from }}"></label>
+        <label>Дата до: <input type="date" name="date_to" value="{{ request.GET.date_to }}"></label>
+        <br>
+        <label>Категория:
+            <select name="category">
+                <option value="">—</option>
+                {% for c in categories %}
+                    <option value="{{ c }}" {% if request.GET.category == c %}selected{% endif %}>{{ c }}</option>
+                {% endfor %}
             </select>
         </label>
-        <label>Дата от:
-            <input type="date" name="date_from" value="{{ request.GET.date_from }}">
-        </label>
-        <label>Дата до:
-            <input type="date" name="date_to" value="{{ request.GET.date_to }}">
-        </label>
-        <label>Категория:
-            <input type="text" name="category" value="{{ request.GET.category }}">
-        </label>
         <label>Подкатегория:
-            <input type="text" name="subcategory" value="{{ request.GET.subcategory }}">
+            <select name="subcategory">
+                <option value="">—</option>
+                {% for s in subcategories %}
+                    <option value="{{ s }}" {% if request.GET.subcategory == s %}selected{% endif %}>{{ s }}</option>
+                {% endfor %}
+            </select>
         </label>
         <label>Валюта:
-            <input type="text" name="currency" value="{{ request.GET.currency }}">
+            <select name="currency">
+                <option value="">—</option>
+                {% for code, name in currencies %}
+                    <option value="{{ code }}" {% if request.GET.currency == code %}selected{% endif %}>
+                        {{ code }} — {{ name }}
+                    </option>
+                {% endfor %}
+            </select>
         </label>
         <label>Способ оплаты:
-            <input type="text" name="payment_method" value="{{ request.GET.payment_method }}">
+            <select name="payment_method">
+                <option value="">—</option>
+                {% for code, name in payment_methods %}
+                    <option value="{{ code }}" {% if request.GET.payment_method == code %}selected{% endif %}>
+                        {{ name }}
+                    </option>
+                {% endfor %}
+            </select>
         </label>
-        <label>Метка:
-            <input type="text" name="tag" value="{{ request.GET.tag }}">
-        </label>
+        <label>Метка: <input type="text" name="tag" value="{{ request.GET.tag }}"></label>
+        <br>
         <button type="submit">Применить</button>
         <a href="{% url 'transaction_list' %}">Сбросить</a>
     </fieldset>
 </form>
 
-<hr>
+<div id="analytics-block" style="margin-bottom: 30px;">
+    Загрузка аналитики...
+</div>
 
-<table border="1" cellpadding="5">
+<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
     <thead>
         <tr>
             <th>Дата</th>
@@ -63,12 +69,13 @@
             <th>Подкатегория</th>
             <th>Способ оплаты</th>
             <th>Метка</th>
+            <th>Действия</th>
         </tr>
     </thead>
     <tbody>
         {% for t in transactions %}
         <tr>
-            <td>{{ t.date }}</td>
+            <td>{{ t.date|date:"Y-m-d" }}</td>
             <td>{{ t.amount }}</td>
             <td>{{ t.currency }}</td>
             <td>{{ t.get_type_display }}</td>
@@ -76,13 +83,36 @@
             <td>{{ t.subcategory }}</td>
             <td>{{ t.get_payment_method_display }}</td>
             <td>{{ t.tag }}</td>
+            <td>
+                <a href="{% url 'transaction_edit' t.id %}">✏️</a>
+                <a href="{% url 'transaction_delete' t.id %}">🗑️</a>
+            </td>
         </tr>
         {% empty %}
-        <tr>
-            <td colspan="8">Нет данных</td>
-        </tr>
+        <tr><td colspan="9">Нет транзакций</td></tr>
         {% endfor %}
     </tbody>
 </table>
 
+<script>
+function loadAnalytics() {
+    const params = new URLSearchParams(new FormData(document.getElementById("filters-form")));
+    fetch("{% url 'analytics_block' %}?" + params.toString(), {credentials: "same-origin"})
+        .then(r => r.text())
+        .then(html => {
+            document.getElementById("analytics-block").innerHTML = html;
+        });
+}
+
+// Загружаем при старте
+loadAnalytics();
+
+// Перехватываем отправку формы фильтров
+document.getElementById("filters-form").addEventListener("submit", function(e) {
+    e.preventDefault();
+    // Обновляем графики
+    loadAnalytics();
+    // Если нужно, можно сделать AJAX и для таблицы
+});
+</script>
 {% endblock %}

@@ -1,3 +1,4 @@
+# transactions/urls.py
 from django.urls import path
 from . import views
 from . import views_enums as ev
@@ -10,4 +11,7 @@ urlpatterns = [
     path("enums/category/add/ajax/", ev.category_add_ajax, name="category_add_ajax"),
     path("enums/subcategories.json", ev.subcategories_json, name="subcategories_json"),
     path("enums/subcategory/add/ajax/", ev.subcategory_add_ajax, name="subcategory_add_ajax"),
+
+    path("<int:pk>/edit/", views.transaction_edit, name="transaction_edit"),  # ← добавили
+    path("<int:pk>/delete/", views.transaction_delete, name="transaction_delete"),
 ]
