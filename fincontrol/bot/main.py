@@ -4,6 +4,9 @@ import asyncio
 import django
 import os
 
+from services.advice_scheduler import start_scheduler
+
+
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "fincontrol.settings")
 django.setup()
 
@@ -22,4 +25,5 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
+    start_scheduler()
     asyncio.run(main())

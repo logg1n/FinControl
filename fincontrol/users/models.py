@@ -1,16 +1,14 @@
- 
+from django.contrib.auth.models import AbstractUser
 from django.db import models
-from django.contrib.auth.models import User
 import uuid
 
-class Profile(models.Model):
+class User(AbstractUser):
     GENDER_CHOICES = [
         ('male', 'Мужской'),
         ('female', 'Женский'),
         ('other', 'Другое'),
     ]
 
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
     full_name = models.CharField("Полное имя", max_length=150, blank=True)
     gender = models.CharField("Пол", max_length=10, choices=GENDER_CHOICES, blank=True)
     age = models.PositiveIntegerField("Возраст", null=True, blank=True)
@@ -24,4 +22,4 @@ class Profile(models.Model):
         self.save()
 
     def __str__(self):
-        return f"Профиль {self.user.username}"
+        return self.username

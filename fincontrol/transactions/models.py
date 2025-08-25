@@ -1,5 +1,5 @@
 from django.db import models
-from django.contrib.auth.models import User
+from django.conf import settings
 from .constants import CURRENCY_CHOICES
 
 
@@ -17,7 +17,7 @@ class Transaction(models.Model):
         ('other', 'Другое'),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Пользователь")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     amount = models.DecimalField(max_digits=12, decimal_places=2, verbose_name="Сумма")
     date = models.DateField(verbose_name="Дата операции")
     type = models.CharField(max_length=7, choices=TYPE_CHOICES, verbose_name="Тип операции")

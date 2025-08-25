@@ -8,4 +8,3 @@ urlpatterns = [
     path("profile/", views.profile_view, name="profile"),
     path("profile/generate-telegram-code/", views.generate_telegram_code, name="generate_telegram_code"),
 ]
-

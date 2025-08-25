@@ -39,11 +39,12 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
 
     "transactions",
-    # "users",
     'users.apps.UsersConfig',
     "dashboard",
     "bot",
 ]
+
+AUTH_USER_MODEL = 'users.User'
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -84,6 +85,7 @@ DATABASES = {
         "NAME": BASE_DIR / "db.sqlite3",
     }
 }
+
 
 
 # Password validation

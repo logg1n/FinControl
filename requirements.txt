@@ -1,5 +1,5 @@
 # Django и экосистема
-Django==4.2.7
+Django==5.2.2
 django-environ==0.10.0
 django-crispy-forms==2.0
 
@@ -9,6 +9,7 @@ psycopg2-binary==2.9.9  # PostgreSQL
 
 # Telegram-бот
 aiogram==3.0.0
+aiohttp~=3.8.5
 
 # Аналитика и визуализация
 pandas==2.2.2
@@ -25,3 +26,6 @@ reportlab==4.0.4
 # Фоновые задачи (опционально)
 celery==5.3.6
 redis==5.0.1
+
+python-dotenv~=1.1.1
+openai~=1.101.0
