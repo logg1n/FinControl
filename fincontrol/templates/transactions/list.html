@@ -54,6 +54,23 @@
     </fieldset>
 </form>
 
+
+<div class="dropdown">
+  <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+    ⚙ Настройки
+  </button>
+  <ul class="dropdown-menu">
+    <li class="dropdown-submenu">
+      <a class="dropdown-item dropdown-toggle" href="#">📤 Экспорт</a>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="{% url 'export_transactions' 'excel' %}?{{ request.GET.urlencode }}">Excel (.xlsx)</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_transactions' 'pdf' %}?{{ request.GET.urlencode }}">PDF (.pdf)</a></li>
+        <li><a class="dropdown-item" href="{% url 'export_transactions' 'csv' %}?{{ request.GET.urlencode }}">CSV (.csv)</a></li>
+      </ul>
+    </li>
+  </ul>
+</div>
+
 <table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse: collapse;">
     <thead>
         <tr>

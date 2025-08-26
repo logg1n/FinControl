@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'users.apps.UsersConfig',
     "dashboard",
     "bot",
+    "reports",
 ]
 
 AUTH_USER_MODEL = 'users.User'
