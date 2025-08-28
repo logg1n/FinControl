@@ -3,9 +3,13 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Sum
 from transactions.models import Transaction
-from openai import OpenAI
+from openai import OpenAI  # тот же пакет, что и у OpenAI, но работаем с DeepSeek
 
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+# Ключ берём из переменных окружения (.env)
+client = OpenAI(
+    api_key=os.getenv("DEEPSEEK_API_KEY"),
+    base_url="https://api.deepseek.com/v1"
+)
 
 def generate_spending_summary(user, days=30):
     today = timezone.now().date()
@@ -45,8 +49,11 @@ def get_ai_advice(user, days=30):
     )
 
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": prompt}],
+        model="deepseek-chat",  # модель DeepSeek
+        messages=[
+            {"role": "system", "content": "Ты — умный и полезный финансовый помощник"},
+            {"role": "user", "content": prompt}
+        ],
         temperature=0.7
     )
 

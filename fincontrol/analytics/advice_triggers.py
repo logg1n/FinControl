@@ -5,7 +5,7 @@ from django.db.models import Sum
 from aiogram import Bot
 from users.models import User
 from transactions.models import Transaction
-from services.advice_generator import get_ai_advice
+from analytics.advice_generator import get_ai_advice
 
 bot = Bot(token=os.getenv("TELEGRAM_BOT_TOKEN"))
 

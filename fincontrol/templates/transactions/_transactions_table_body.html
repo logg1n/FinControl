@@ -9,10 +9,16 @@
     <td>{{ t.get_payment_method_display }}</td>
     <td>{{ t.tag }}</td>
     <td>
-        <a href="{% url 'transaction_edit' t.id %}">✏️</a>
-        <a href="{% url 'transaction_delete' t.id %}">🗑️</a>
+        <a href="{% url 'transaction_edit' t.id %}" class="btn btn-sm btn-warning me-1" title="Редактировать">
+            <i class="bi bi-pencil"></i>
+        </a>
+        <a href="{% url 'transaction_delete' t.id %}" class="btn btn-sm btn-danger" title="Удалить">
+            <i class="bi bi-trash"></i>
+        </a>
     </td>
 </tr>
 {% empty %}
-<tr><td colspan="9">Нет транзакций</td></tr>
+<tr>
+    <td colspan="9" class="text-center text-muted">Нет транзакций</td>
+</tr>
 {% endfor %}

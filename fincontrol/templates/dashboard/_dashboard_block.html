@@ -1,38 +1,56 @@
-<div style="display:flex; gap:20px; margin-bottom:20px; flex-wrap: wrap;">
-    <div style="flex:1; min-width:200px; background:#ecf0f1; padding:15px; border-radius:8px; text-align:center;">
-        <h3 style="margin:0; font-size:1.1em; color:#2c3e50;">Доход</h3>
-        <p style="font-size:1.6em; color:green; margin:5px 0 0;">
-            {{ total_income|floatformat:2 }}
-        </p>
+<div class="row g-3 mb-4">
+    <!-- Доход -->
+    <div class="col-12 col-md-4">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-secondary mb-2">Доход</h5>
+                <p class="fs-3 text-success mb-0">
+                    {{ total_income|floatformat:2 }}
+                </p>
+            </div>
+        </div>
     </div>
-    <div style="flex:1; min-width:200px; background:#ecf0f1; padding:15px; border-radius:8px; text-align:center;">
-        <h3 style="margin:0; font-size:1.1em; color:#2c3e50;">Расход</h3>
-        <p style="font-size:1.6em; color:red; margin:5px 0 0;">
-            {{ total_expense|floatformat:2 }}
-        </p>
+
+    <!-- Расход -->
+    <div class="col-12 col-md-4">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-secondary mb-2">Расход</h5>
+                <p class="fs-3 text-danger mb-0">
+                    {{ total_expense|floatformat:2 }}
+                </p>
+            </div>
+        </div>
     </div>
-    <div style="flex:1; min-width:200px; background:#ecf0f1; padding:15px; border-radius:8px; text-align:center;">
-        <h3 style="margin:0; font-size:1.1em; color:#2c3e50;">Баланс</h3>
-        <p style="font-size:1.6em; margin:5px 0 0; color:{% if balance >= 0 %}green{% else %}red{% endif %};">
-            {{ balance|floatformat:2 }}
-        </p>
+
+    <!-- Баланс -->
+    <div class="col-12 col-md-4">
+        <div class="card text-center shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-secondary mb-2">Баланс</h5>
+                <p class="fs-3 mb-0 {% if balance >= 0 %}text-success{% else %}text-danger{% endif %}">
+                    {{ balance|floatformat:2 }}
+                </p>
+            </div>
+        </div>
     </div>
 </div>
 
+<!-- Графики -->
 {% if fig_line %}
-    <div style="margin-bottom: 40px;">{{ fig_line|safe }}</div>
+    <div class="mb-5">{{ fig_line|safe }}</div>
 {% else %}
-    <p style="color:#7f8c8d;">Нет данных для графика динамики.</p>
+    <p class="text-muted">Нет данных для графика динамики.</p>
 {% endif %}
 
 {% if fig_pie %}
-    <div style="margin-bottom: 40px;">{{ fig_pie|safe }}</div>
+    <div class="mb-5">{{ fig_pie|safe }}</div>
 {% else %}
-    <p style="color:#7f8c8d;">Нет данных для круговой диаграммы.</p>
+    <p class="text-muted">Нет данных для круговой диаграммы.</p>
 {% endif %}
 
 {% if fig_bar %}
     <div>{{ fig_bar|safe }}</div>
 {% else %}
-    <p style="color:#7f8c8d;">Нет данных для топа подкатегорий.</p>
+    <p class="text-muted">Нет данных для топа подкатегорий.</p>
 {% endif %}

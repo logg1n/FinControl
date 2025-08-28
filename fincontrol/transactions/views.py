@@ -1,17 +1,81 @@
 import pandas as pd
+import datetime
+import os
 
 import plotly.express as px
-from django.shortcuts import render, get_object_or_404, redirect
+from openai import OpenAI  # библиотека одна, API другой
+
 from django.contrib.auth.decorators import login_required
-from django.template.loader import render_to_string
-from django.http import HttpResponse
+from django.contrib.auth.forms import AuthenticationForm
+from django.core.cache import cache
 from django.db.models import Sum
+from django.http import HttpResponse
+from django.shortcuts import render, get_object_or_404, redirect
+from django.template.loader import render_to_string
 
 from .models import Transaction
 from .forms import TransactionForm
 from .filters import TransactionFilters
 from .enums.service import get_enum_service
 from .constants import CURRENCY_CHOICES
+
+
+
+
+def get_ai_tip():
+    """Генерирует или возвращает из кэша AI‑совет дня от DeepSeek."""
+    today = datetime.date.today().isoformat()
+    cache_key = f"ai_tip_{today}"
+
+    # Пробуем взять из кэша
+    tip = cache.get(cache_key)
+    if tip:
+        return tip
+
+    # Если в кэше нет — генерируем через DeepSeek API
+    client = OpenAI(
+        api_key=os.getenv("DEEPSEEK_API_KEY"),  # ключ из .env
+        base_url="https://api.deepseek.com/v1"   # DeepSeek endpoint
+    )
+
+    prompt = (
+        "Сгенерируй один короткий, практичный совет по личным финансам "
+        "на русском языке. Совет должен быть полезен широкой аудитории, "
+        "без сложных терминов, максимум 2 предложения."
+    )
+
+    try:
+        resp = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=60,
+            temperature=0.8
+        )
+        tip = resp.choices[0].message["content"].strip()
+    except Exception:
+        # Фолбэк, если API недоступно
+        tip = "💡 Ведите учёт расходов — это помогает находить утечки бюджета."
+
+    # Кэшируем совет до полуночи
+    now = datetime.datetime.now()
+    midnight = datetime.datetime.combine(
+        now.date() + datetime.timedelta(days=1),
+        datetime.time.min
+    )
+    seconds_until_midnight = int((midnight - now).total_seconds())
+    cache.set(cache_key, tip, timeout=seconds_until_midnight)
+
+    return tip
+
+
+def home(request):
+    """Главная страница с формой входа и AI‑советом дня."""
+    form = AuthenticationForm()
+    tip_of_the_day = get_ai_tip()
+    return render(request, "transactions/home.html", {
+        "form": form,
+        "tip_of_the_day": tip_of_the_day
+    })
 
 
 @login_required

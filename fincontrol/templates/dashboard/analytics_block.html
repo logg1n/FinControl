@@ -1,7 +1,7 @@
 {% if no_data %}
-<p>Нет данных для аналитики.</p>
+<div class="alert alert-info">Нет данных для аналитики.</div>
 {% else %}
-<div style="margin-bottom: 40px;">{{ fig_line|safe }}</div>
-<div style="margin-bottom: 40px;">{{ fig_pie|safe }}</div>
-<div>{{ fig_bar|safe }}</div>
+    <div class="mb-5">{{ fig_line|safe }}</div>
+    <div class="mb-5">{{ fig_pie|safe }}</div>
+    <div>{{ fig_bar|safe }}</div>
 {% endif %}

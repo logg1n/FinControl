@@ -21,11 +21,14 @@ from django.contrib import admin
 from django.urls import path, include
 from django.shortcuts import redirect
 
+from transactions.views import home
+
 
 urlpatterns = [
+    path("", home, name="home"),
     path("admin/", admin.site.urls),
     path("transactions/", include("transactions.urls")),
     path("dashboard/", include("dashboard.urls")),
-    path("export/", include("exporter.urls")),
+    path("export/", include("reports.urls")),
     path("", include("users.urls")),
 ]

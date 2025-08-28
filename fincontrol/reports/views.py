@@ -1,4 +1,3 @@
- 
 import csv
 from io import BytesIO
 from datetime import datetime
@@ -6,7 +5,7 @@ import openpyxl
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, StreamingHttpResponse, Http404
 from django.template.loader import render_to_string
-from weasyprint import HTML
+from xhtml2pdf import pisa   # заменили weasyprint на xhtml2pdf
 from .utils import get_filtered_transactions
 
 def _filename(prefix: str, ext: str) -> str:
@@ -34,6 +33,7 @@ def export_transactions(request, fmt: str):
 
     qs = get_filtered_transactions(request)
 
+    # Excel
     if fmt == "excel":
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -51,10 +51,15 @@ def export_transactions(request, fmt: str):
         resp["Content-Disposition"] = f'attachment; filename="{_filename("transactions", "xlsx")}"'
         return resp
 
+    # PDF через xhtml2pdf
     if fmt == "pdf":
         html_string = render_to_string("exporter/transactions_pdf.html", {"transactions": qs})
-        pdf_bytes = HTML(string=html_string, base_url=request.build_absolute_uri("/")).write_pdf()
-        resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+        pdf_buffer = BytesIO()
+        pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer)
+        if pisa_status.err:
+            return HttpResponse("Ошибка генерации PDF", status=500)
+
+        resp = HttpResponse(pdf_buffer.getvalue(), content_type="application/pdf")
         resp["Content-Disposition"] = f'attachment; filename="{_filename("transactions", "pdf")}"'
         return resp
 

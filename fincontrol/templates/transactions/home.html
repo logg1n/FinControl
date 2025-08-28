@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+
+{% block title %}Главная — FinControl{% endblock %}
+
+{% block content %}
+<div class="text-center mb-5">
+    <h1 class="mb-3">Добро пожаловать в <strong>FinControl</strong></h1>
+    <p class="lead">Умный помощник для учёта расходов, анализа бюджета и получения ИИ‑советов.</p>
+</div>
+
+<!-- AI‑Совет дня -->
+<div class="alert alert-info mx-auto" style="max-width: 800px;">
+    {{ tip_of_the_day }}
+</div>
+
+<!-- Карточки функций -->
+<div class="row g-4 my-5">
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">📊 Учёт и категории</h5>
+                <p class="card-text">Ведите детальный учёт операций с сортировкой по категориям и тегам.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">📈 Аналитика и отчёты</h5>
+                <p class="card-text">Графики, Excel и PDF‑экспорт за любой период.</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title">🤖 AI‑советы</h5>
+                <p class="card-text">Рекомендации по оптимизации бюджета на основе DeepSeek.</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Форма входа -->
+<div class="card shadow-sm mx-auto" style="max-width: 400px;">
+    <div class="card-body">
+        <h5 class="card-title text-center mb-3">Вход в систему</h5>
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit" class="btn btn-primary w-100">Войти</button>
+        </form>
+    </div>
+</div>
+
+<p class="mt-4 text-center">Нет аккаунта? <a href="{% url 'register' %}">Зарегистрироваться</a></p>
+{% endblock %}

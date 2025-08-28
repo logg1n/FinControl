@@ -12,8 +12,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
-# Build paths inside the project like this: BASE_DIR / 'subdir'.
+import dotenv
+import os
+
 BASE_DIR = Path(__file__).resolve().parent.parent
+dotenv.load_dotenv(os.path.join(BASE_DIR, ".env"))
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
 
 
 # Quick-start development settings - unsuitable for production
@@ -38,11 +43,12 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
 
+    "analytics",
+    "bot",
+    "dashboard",
+    "reports",
     "transactions",
     'users.apps.UsersConfig',
-    "dashboard",
-    "bot",
-    "reports",
 ]
 
 AUTH_USER_MODEL = 'users.User'
@@ -87,6 +93,12 @@ DATABASES = {
     }
 }
 
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "unique-fincontrol-cache"
+    }
+}
 
 
 # Password validation
