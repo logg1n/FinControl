@@ -120,8 +120,12 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 
 LOGIN_URL = "login"
+
+# После успешного входа
 LOGIN_REDIRECT_URL = "transaction_list"
-LOGOUT_REDIRECT_URL = "login"
+
+# После выхода (опционально)
+LOGOUT_REDIRECT_URL = "root"
 
 
 # Internationalization

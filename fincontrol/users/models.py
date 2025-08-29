@@ -14,8 +14,8 @@ class User(AbstractUser):
     age = models.PositiveIntegerField("Возраст", null=True, blank=True)
     position = models.CharField("Должность", max_length=150, blank=True)
 
-    telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True)
-    telegram_link_code = models.CharField("Код привязки Telegram", max_length=36, blank=True)
+    telegram_id = models.BigIntegerField("Telegram ID", null=True, blank=True, unique=True)
+    telegram_link_code = models.CharField("Код привязки Telegram", max_length=36, blank=True, unique=True)
 
     def generate_link_code(self):
         self.telegram_link_code = str(uuid.uuid4())

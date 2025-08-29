@@ -67,6 +67,17 @@ def get_ai_tip():
 
     return tip
 
+def root_router(request):
+    """Главная точка входа: отправляет на нужную страницу в зависимости от авторизации."""
+    if request.user.is_authenticated:
+        return redirect("transaction_list")  # имя URL для списка транзакций
+    else:
+        form = AuthenticationForm()
+        tip_of_the_day = "💡 Ведите учёт расходов — это помогает находить утечки бюджета."
+        return render(request, "transactions/home.html", {
+            "form": form,
+            "tip_of_the_day": tip_of_the_day
+        })
 
 def home(request):
     """Главная страница с формой входа и AI‑советом дня."""

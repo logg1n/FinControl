@@ -17,41 +17,32 @@
 <!-- Навигация -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container">
+    <!-- Логотип -->
     <a class="navbar-brand" href="/">
       💰 FinControl
     </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-      <span class="navbar-toggler-icon"></span>
-    </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
-      <ul class="navbar-nav ms-auto">
-        {% if user.is_authenticated %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'transaction_list' %}">
-              <i class="bi bi-card-list"></i> Мои транзакции
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'logout' %}">
-              <i class="bi bi-box-arrow-right"></i> Выйти
-            </a>
-          </li>
+
+    <div class="ms-auto d-flex align-items-center">
+      {% if user.is_authenticated %}
+        {% if request.resolver_match.url_name == 'profile' or request.resolver_match.url_name == 'settings' %}
+          <!-- В настройках/профиле: кнопка "Назад" -->
+          <a href="{% url 'home' %}" class="btn btn-outline-light btn-sm">
+            <i class="bi bi-arrow-left"></i>
+          </a>
         {% else %}
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'login' %}">
-              <i class="bi bi-box-arrow-in-right"></i> Войти
-            </a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" href="{% url 'register' %}">
-              <i class="bi bi-person-plus"></i> Регистрация
-            </a>
-          </li>
+          <!-- Обычный режим: настройки + выход -->
+          <a href="{% url 'profile' %}" class="btn btn-outline-light btn-sm me-2" title="Настройки">
+            <i class="bi bi-gear"></i>
+          </a>
+          <a href="{% url 'logout' %}" class="btn btn-outline-light btn-sm" title="Выйти">
+            <i class="bi bi-box-arrow-right"></i>
+          </a>
         {% endif %}
-      </ul>
+      {% endif %}
     </div>
   </div>
 </nav>
+
 
 <!-- Контент -->
 <main class="container my-4">
