@@ -1,36 +1,41 @@
 {% extends "base.html" %}
 {% block title %}Мой кабинет | FinControl{% endblock %}
+
 {% block content %}
 <div class="row justify-content-center">
     <div class="col-md-8 col-lg-6">
         <h2 class="mb-4 text-center">Мой кабинет</h2>
 
-        <form method="post" class="card p-4 shadow-sm mb-4">
+        <!-- Единая форма анкеты + Telegram -->
+        <form method="post" class="card p-4 shadow-sm">
             {% csrf_token %}
             {{ form.as_p }}
+
+            <div class="form-text mb-3">
+                Укажите свой ник в Telegram (без @), затем нажмите «Старт» в боте, чтобы привязать аккаунт.
+                Если снять галочку «Telegram привязан» и сохранить — привязка будет удалена.
+            </div>
+
             <button type="submit" class="btn btn-primary">
                 <i class="bi bi-save"></i> Сохранить
             </button>
         </form>
 
-        <div class="card p-4 shadow-sm">
-            <h3 class="h5 mb-3">Привязка Telegram</h3>
-            {% if telegram_id %}
-                <div class="alert alert-success">
-                    ✅ Привязан (ID: {{ telegram_id }})
+        <!-- Статус привязки -->
+        <div class="card p-4 shadow-sm mt-4">
+            <h3 class="h5 mb-3">Статус привязки</h3>
+
+            {% if user.telegram_id %}
+                <div class="alert alert-success mb-0">
+                    ✅ Привязан (ID: {{ user.telegram_id }})
                 </div>
             {% else %}
-                {% if telegram_link_code %}
-                    <p>Код для привязки: <b>{{ telegram_link_code }}</b></p>
-                    <p>В боте отправьте: <code>/link {{ telegram_link_code }}</code></p>
-                {% else %}
-                    <form method="post" action="{% url 'generate_telegram_code' %}">
-                        {% csrf_token %}
-                        <button type="submit" class="btn btn-outline-secondary">
-                            <i class="bi bi-qr-code"></i> Сгенерировать код
-                        </button>
-                    </form>
-                {% endif %}
+                <div class="alert alert-warning mb-3">
+                    ⚠️ Telegram не привязан. Укажите свой @username выше и нажмите «Старт» в боте.
+                </div>
+                <a href="https://t.me/FinControlProjectBot" target="_blank" class="btn btn-outline-primary">
+                    <i class="bi bi-telegram"></i> Открыть бота
+                </a>
             {% endif %}
         </div>
     </div>

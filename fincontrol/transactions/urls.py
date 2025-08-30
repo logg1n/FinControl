@@ -3,7 +3,7 @@ from . import views
 from . import views_enums as ev
 
 urlpatterns = [
-    path("", views.dashboard_view, name="transaction_list"),
+    path("", views.dashboard_view, name="transactions"),
     path("add/", views.transaction_add, name="transaction_add"),
 
     # AJAX для категорий и подкатегорий

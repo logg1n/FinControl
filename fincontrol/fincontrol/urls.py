@@ -26,6 +26,7 @@ from transactions.views import home, root_router
 
 urlpatterns = [
     path("", root_router, name="root"),
+    path("home/", root_router, name="home"),
     path("admin/", admin.site.urls),
     path("transactions/", include("transactions.urls")),
     path("dashboard/", include("dashboard.urls")),

@@ -30,5 +30,14 @@ class Transaction(models.Model):
     class Meta:
         ordering = ['-date']
 
+    def save(self, *args, **kwargs):
+        # Если категория не указана — ставим "Общая"
+        if not self.category or not self.category.strip():
+            self.category = "Общая"
+        # Если подкатегория не указана — тоже "Общая"
+        if not self.subcategory or not self.subcategory.strip():
+            self.subcategory = "Общая"
+        super().save(*args, **kwargs)
+
     def __str__(self):
         return f"{self.date} | {self.amount} {self.currency} | {self.get_type_display()}"

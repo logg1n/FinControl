@@ -1,19 +1,10 @@
 {% extends "base.html" %}
-{% block title %}Вход | FinControl{% endblock %}
+{% block title %}Вход{% endblock %}
 {% block content %}
-<div class="row justify-content-center">
-    <div class="col-md-6 col-lg-4">
-        <h2 class="mb-4 text-center">Вход</h2>
-        <form method="post" class="card p-4 shadow-sm">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit" class="btn btn-primary w-100">
-                <i class="bi bi-box-arrow-in-right"></i> Войти
-            </button>
-        </form>
-        <div class="text-center mt-3">
-            <a href="{% url 'register' %}">Нет аккаунта? Зарегистрироваться</a>
-        </div>
-    </div>
-</div>
+<h2 class="mb-4">Вход</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-success">Войти</button>
+</form>
 {% endblock %}

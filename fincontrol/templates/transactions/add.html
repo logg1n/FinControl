@@ -16,81 +16,57 @@
 
             <div class="mb-3">
                 <label class="form-label">{{ form.amount.label }}:</label>
-                {{ form.amount|add_class:"form-control" }}
+                {{ form.amount }}
             </div>
 
             <div class="mb-3">
                 <label class="form-label">{{ form.date.label }}:</label>
-                {{ form.date|add_class:"form-control" }}
+                {{ form.date }}
             </div>
 
             <div class="mb-3">
                 <label class="form-label">{{ form.type.label }}:</label>
-                {{ form.type|add_class:"form-select" }}
+                {{ form.type }}
             </div>
 
             <div class="mb-3">
                 <label class="form-label">{{ form.payment_method.label }}:</label>
-                {{ form.payment_method|add_class:"form-select" }}
+                {{ form.payment_method }}
             </div>
 
-            <!-- Валюта с поиском -->
+            <!-- Валюта -->
             <div class="mb-3">
-                <label for="currency_search" class="form-label">Валюта:</label>
-                <input type="text" id="currency_search" class="form-control mb-2" placeholder="Поиск валюты...">
-                <select id="id_currency" name="currency" size="8" class="form-select">
-                    {% for code, name in currencies %}
-                        <option value="{{ code }}" {% if form.instance.currency == code %}selected{% endif %}>
-                            {{ code }} — {{ name }}
-                        </option>
-                    {% endfor %}
-                </select>
+                <label class="form-label">{{ form.currency.label }}:</label>
+                {{ form.currency }}
             </div>
 
             <!-- Категория -->
             <div class="mb-3">
-                <label for="id_category" class="form-label">Категория:</label>
-                <select id="id_category" name="category" class="form-select">
-                    <option value="">—</option>
-                    {% for c in categories %}
-                        <option value="{{ c }}" {% if form.instance.category == c %}selected{% endif %}>{{ c }}</option>
-                    {% endfor %}
-                    <option value="__add_new__">+ Добавить категорию…</option>
-                </select>
+                <label class="form-label">{{ form.category.label }}:</label>
+                {{ form.category }}
             </div>
 
             <!-- Подкатегория -->
             <div class="mb-3">
-                <label for="id_subcategory" class="form-label">Подкатегория:</label>
-                <select id="id_subcategory" name="subcategory" class="form-select">
-                    <option value="">—</option>
-                    {% if form.instance.subcategory %}
-                        <option value="{{ form.instance.subcategory }}" selected>{{ form.instance.subcategory }}</option>
-                    {% endif %}
-                    <option value="__add_new__">+ Добавить подкатегорию…</option>
-                </select>
+                <label class="form-label">{{ form.subcategory.label }}:</label>
+                {{ form.subcategory }}
             </div>
 
             <!-- Метка -->
             <div class="mb-3">
                 <label class="form-label">{{ form.tag.label }}:</label>
-                {{ form.tag|add_class:"form-control" }}
+                {{ form.tag }}
             </div>
 
             <div class="d-flex justify-content-between">
                 <button type="submit" class="btn btn-primary">
                     <i class="bi bi-save"></i> Сохранить
                 </button>
-                <a href="{% url 'transaction_list' %}" class="btn btn-outline-secondary">
+                <a href="{% url 'transactions' %}" class="btn btn-outline-secondary">
                     <i class="bi bi-x-circle"></i> Отмена
                 </a>
             </div>
         </form>
     </div>
 </div>
-
-<!-- Логика JS без изменений -->
-<script>
-{{ block.super }}  {# сюда вставляется твой текущий скрипт из исходника #}
-</script>
 {% endblock %}
