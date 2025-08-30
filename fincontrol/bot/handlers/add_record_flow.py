@@ -1,342 +1,182 @@
-from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from aiogram.fsm.state import StatesGroup, State
+from aiogram import F, Router
+from aiogram.types import CallbackQuery, Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import StatesGroup, State
 from asgiref.sync import sync_to_async
 from django.utils import timezone
-from datetime import datetime
+from asgiref.sync import sync_to_async
+from django.utils import timezone
+
+from users.models import User
+from transactions.models import Transaction
+from transactions.queries import get_balance
 
 from bot.keyboards.categories_kb import (
     get_categories,
     get_subcategories,
     categories_keyboard,
-    subcategories_keyboard,
+    subcategories_keyboard
 )
-from bot.keyboards.main_kb import main_menu
-from django.contrib.auth import get_user_model
-from transactions.models import Transaction
 
-User = get_user_model()
+
 router = Router()
 
-# ===== Хелперы =====
-def back_btn(callback: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        inline_keyboard=[[InlineKeyboardButton(text="⬅️ Назад", callback_data=callback)]]
-    )
-
-def fmt_confirm_text(data: dict) -> str:
-    return (
-        f"Тип: {data['type']}\n"
-        f"Категория: {data.get('category', 'Общая')}\n"
-        f"Подкатегория: {data.get('subcategory', '—')}\n"
-        f"Сумма: {data['amount']}\n"
-        f"Дата: {data['date'].strftime('%d.%m.%Y')}"
-    )
-
-# ===== Состояния =====
+# ===== Состояния FSM =====
 class AddRecord(StatesGroup):
-    type = State()
-    category = State()
-    subcategory = State()
-    amount = State()
-    date = State()
-    confirm = State()
+    choosing_type = State()
+    choosing_category = State()
+    choosing_subcategory = State()
+    entering_amount = State()
+    confirming = State()
 
-# ===== Старт =====
-@router.callback_query(F.data == "add_record")
-async def add_record_start(call: CallbackQuery, state: FSMContext):
-    await state.clear()
-    kb = InlineKeyboardMarkup(inline_keyboard=[
+# ===== Кнопки выбора типа =====
+def type_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="💵 Доход", callback_data="type_income")],
         [InlineKeyboardButton(text="💸 Расход", callback_data="type_expense")],
-        [InlineKeyboardButton(text="💰 Доход", callback_data="type_income")],
-        [InlineKeyboardButton(text="❌ Отмена", callback_data="main_menu")]
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_add_record")]
     ])
-    await state.set_state(AddRecord.type)
-    await call.message.edit_text("Выбери тип записи:", reply_markup=kb)
+
+# ===== Создание транзакции (синхронный ORM в отдельном потоке) =====
+
+@sync_to_async
+def create_transaction(telegram_id, record_type, category, subcategory, amount, payment_method="cash", currency="BYN", tag=""):
+    # Находим пользователя по telegram_id
+    user = User.objects.get(telegram_id=telegram_id)
+
+    return Transaction.objects.create(
+        user=user,
+        type=record_type,
+        category=category,
+        subcategory=subcategory if subcategory != "—" else None,
+        amount=amount,
+        date=timezone.now().date(),
+        payment_method=payment_method,
+        currency=currency,
+        tag=tag
+    )
+
+
+# ===== Старт добавления записи =====
+@router.callback_query(F.data == "add_record")
+async def cb_add_record(call: CallbackQuery, state: FSMContext):
+    await state.set_state(AddRecord.choosing_type)
+    new_text = "➕ Выберите тип записи:"
+    if call.message.text != new_text:
+        await call.message.edit_text(new_text, reply_markup=type_keyboard())
+    else:
+        await call.answer()
 
 # ===== Выбор типа =====
-@router.callback_query(AddRecord.type, F.data.startswith("type_"))
+@router.callback_query(F.data.startswith("type_"), AddRecord.choosing_type)
 async def choose_type(call: CallbackQuery, state: FSMContext):
-    record_type = call.data.split("_", 1)[1]
-    await state.update_data(type=record_type)
-
-    # Если мы в режиме редактирования поля "type" — вернуться к подтверждению
-    data = await state.get_data()
-    if data.get("edit_field") == "type":
-        await state.update_data(edit_field=None)
-        await show_confirm(call.message, state)
-        return
+    record_type = call.data.split("_")[1]  # income / expense
+    await state.update_data(record_type=record_type)
 
     cats = await get_categories()
-    kb = categories_keyboard(cats, extra_buttons=[
-        ("Пропустить", "skip_category"),
-        ("⬅️ Назад", "add_record")
-    ])
-    await state.set_state(AddRecord.category)
-    await call.message.edit_text("📂 Выбери категорию:", reply_markup=kb)
+    kb = categories_keyboard(
+        cats,
+        extra_buttons=[[InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_add_record")]]
+    )
+
+    await state.set_state(AddRecord.choosing_category)
+    await call.message.edit_text(f"📂 Выберите категорию для {'дохода' if record_type=='income' else 'расхода'}:", reply_markup=kb)
+    await call.answer()
 
 # ===== Выбор категории =====
-@router.callback_query(AddRecord.category)
+@router.callback_query(F.data.startswith("category_"), AddRecord.choosing_category)
 async def choose_category(call: CallbackQuery, state: FSMContext):
-    if call.data == "skip_category":
-        await state.update_data(category="Общее")
-        subs = await get_subcategories("Общее")
-        kb = subcategories_keyboard(subs, "Общее", extra_buttons=[
-            ("Пропустить", "skip_subcategory"),
-            ("⬅️ Назад", "back_to_category")
-        ])
-        await state.set_state(AddRecord.subcategory)
-        await call.message.edit_text("📂 Выбери подкатегорию или пропусти:", reply_markup=kb)
-        return
+    category_name = call.data.split("_", 1)[1]
+    await state.update_data(category=category_name)
 
-    if call.data.startswith("category_"):
-        cat_name = call.data.split("_", 1)[1]
-        await state.update_data(category=cat_name)
-        subs = await get_subcategories(cat_name)
-        if subs:
-            kb = subcategories_keyboard(subs, cat_name, extra_buttons=[
-                ("Пропустить", "skip_subcategory"),
-                ("⬅️ Назад", "back_to_category")
-            ])
-            await state.set_state(AddRecord.subcategory)
-            await call.message.edit_text("📂 Выбери подкатегорию:", reply_markup=kb)
-        else:
-            await state.update_data(subcategory=None)
-            await state.set_state(AddRecord.amount)
-            await call.message.edit_text("💵 Введи сумму:", reply_markup=back_btn("back_to_category"))
+    subs = await get_subcategories(category_name)
+    if subs:
+        kb = subcategories_keyboard(
+            subs,
+            parent_name=category_name,
+            extra_buttons=[[InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_add_record")]]
+        )
+        await state.set_state(AddRecord.choosing_subcategory)
+        await call.message.edit_text(f"📂 Выберите подкатегорию для {category_name}:", reply_markup=kb)
+    else:
+        await state.set_state(AddRecord.entering_amount)
+        await call.message.edit_text(f"💰 Введите сумму для {category_name}:")
+    await call.answer()
 
 # ===== Выбор подкатегории =====
-@router.callback_query(AddRecord.subcategory)
+@router.callback_query(F.data.startswith("subcategory_"), AddRecord.choosing_subcategory)
 async def choose_subcategory(call: CallbackQuery, state: FSMContext):
-    if call.data == "skip_subcategory":
-        await state.update_data(subcategory="Общее")
-    elif call.data.startswith("subcategory_"):
-        sub_name = call.data.split("_", 1)[1]
-        await state.update_data(subcategory=sub_name)
-    else:
-        await state.update_data(subcategory="Общее")
+    subcategory_name = call.data.split("_", 1)[1]
+    await state.update_data(subcategory=subcategory_name)
 
-    # Если редактировали категорию/подкатегорию — сразу вернуться к подтверждению
-    data = await state.get_data()
-    if data.get("edit_field") in {"category", "subcategory"}:
-        await state.update_data(edit_field=None)
-        await show_confirm(call.message, state)
-        return
-
-    await state.set_state(AddRecord.amount)
-    await call.message.edit_text("💵 Введи сумму:", reply_markup=back_btn("back_to_subcategory"))
+    await state.set_state(AddRecord.entering_amount)
+    await call.message.edit_text(f"💰 Введите сумму для {subcategory_name}:")
+    await call.answer()
 
 # ===== Ввод суммы =====
-@router.message(AddRecord.amount)
-async def input_amount(message: Message, state: FSMContext):
+@router.message(AddRecord.entering_amount)
+async def enter_amount(message: Message, state: FSMContext):
     try:
         amount = float(message.text.replace(",", "."))
-        if amount <= 0:
-            raise ValueError
     except ValueError:
-        await message.answer("❌ Неверная сумма. Введите положительное число.")
+        await message.answer("❌ Введите корректное число.")
         return
 
     await state.update_data(amount=amount)
-
     data = await state.get_data()
-    # Если редактировали только сумму — вернуться к подтверждению
-    if data.get("edit_field") == "amount":
-        await state.update_data(edit_field=None)
-        await show_confirm(message, state)
-        return
 
-    await state.set_state(AddRecord.date)
-    await message.answer(
-        "📅 Введи дату (ДД.ММ.ГГГГ) или напиши 'сегодня'.\nМожно пропустить.",
-        reply_markup=back_btn("back_to_amount")
+    category = data.get("category")
+    subcategory = data.get("subcategory", "—")
+    record_type = data.get("record_type")
+
+    text = (
+        f"📋 Подтверждение записи:\n"
+        f"Тип: {'Доход' if record_type=='income' else 'Расход'}\n"
+        f"Категория: {category}\n"
+        f"Подкатегория: {subcategory}\n"
+        f"Сумма: {amount:.2f}"
     )
 
-# ===== Ввод даты =====
-@router.message(AddRecord.date)
-async def input_date(message: Message, state: FSMContext):
-    text = message.text.strip().lower()
-    if text in ("", "пропустить", "сегодня"):
-        date = timezone.now().date()
-    else:
-        try:
-            date = datetime.strptime(text, "%d.%m.%Y").date()
-        except ValueError:
-            await message.answer("❌ Неверный формат даты. Попробуй ещё раз.")
-            return
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Подтвердить", callback_data="confirm_add_record")],
+        [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_add_record")]
+    ])
 
-    await state.update_data(date=date)
-
-    data = await state.get_data()
-    # Если редактировали только дату — вернуться к подтверждению
-    if data.get("edit_field") == "date":
-        await state.update_data(edit_field=None)
-        await show_confirm(message, state)
-        return
-
-    await show_confirm(message, state)
+    await state.set_state(AddRecord.confirming)
+    await message.answer(text, reply_markup=kb)
 
 # ===== Подтверждение =====
-async def show_confirm(message_or_msg, state: FSMContext):
+
+@router.callback_query(F.data == "confirm_add_record", AddRecord.confirming)
+async def confirm_record(call: CallbackQuery, state: FSMContext):
     data = await state.get_data()
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Сохранить", callback_data="save_record")],
-        [InlineKeyboardButton(text="✏️ Изменить", callback_data="edit_record")],
-        [InlineKeyboardButton(text="❌ Отмена", callback_data="main_menu")]
-    ])
-    await state.set_state(AddRecord.confirm)
-    # message_or_msg может быть Message (message) или Message (call.message)
-    await message_or_msg.answer(f"Проверь данные:\n\n{fmt_confirm_text(data)}", reply_markup=kb)
 
-# ===== Сохранение =====
-@router.callback_query(AddRecord.confirm, F.data == "save_record")
-async def save_record(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    await save_transaction(call.from_user.id, data)
-    await state.clear()
-    await call.message.edit_text("✅ Запись сохранена!", reply_markup=main_menu(True))
-    await call.answer()
-
-# ===== Меню редактирования на экране подтверждения =====
-@router.callback_query(AddRecord.confirm, F.data == "edit_record")
-async def edit_record(call: CallbackQuery, state: FSMContext):
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="Тип", callback_data="edit_type")],
-        [InlineKeyboardButton(text="Категория", callback_data="edit_category")],
-        [InlineKeyboardButton(text="Подкатегория", callback_data="edit_subcategory")],
-        [InlineKeyboardButton(text="Сумма", callback_data="edit_amount")],
-        [InlineKeyboardButton(text="Дата", callback_data="edit_date")],
-        [InlineKeyboardButton(text="⬅️ Назад", callback_data="confirm_back")]
-    ])
-    await call.message.edit_text("Выбери поле для изменения:", reply_markup=kb)
-    await call.answer()
-
-# ===== Обработчики изменения полей =====
-@router.callback_query(F.data == "edit_type")
-async def edit_type(call: CallbackQuery, state: FSMContext):
-    await state.update_data(edit_field="type")
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="💸 Расход", callback_data="type_expense")],
-        [InlineKeyboardButton(text="💰 Доход", callback_data="type_income")],
-        [InlineKeyboardButton(text="⬅️ Назад", callback_data="confirm_back")]
-    ])
-    await state.set_state(AddRecord.type)
-    await call.message.edit_text("Выбери тип записи:", reply_markup=kb)
-    await call.answer()
-
-@router.callback_query(F.data == "edit_category")
-async def edit_category(call: CallbackQuery, state: FSMContext):
-    await state.update_data(edit_field="category")
-    cats = await get_categories()
-    kb = categories_keyboard(cats, extra_buttons=[
-        ("Пропустить", "skip_category"),
-        ("⬅️ Назад", "confirm_back")
-    ])
-    await state.set_state(AddRecord.category)
-    await call.message.edit_text("📂 Выбери категорию:", reply_markup=kb)
-    await call.answer()
-
-@router.callback_query(F.data == "edit_subcategory")
-async def edit_subcategory(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    category = data.get("category")
-    if not category:
-        # Если нет выбранной категории — предложить выбрать категорию
-        await state.update_data(edit_field="category")
-        cats = await get_categories()
-        kb = categories_keyboard(cats, extra_buttons=[
-            ("Пропустить", "skip_category"),
-            ("⬅️ Назад", "confirm_back")
-        ])
-        await state.set_state(AddRecord.category)
-        await call.message.edit_text("Сначала выбери категорию:", reply_markup=kb)
-        await call.answer()
-        return
-
-    await state.update_data(edit_field="subcategory")
-    subs = await get_subcategories(category)
-    kb = subcategories_keyboard(subs, category, extra_buttons=[
-        ("Пропустить", "skip_subcategory"),
-        ("⬅️ Назад", "confirm_back")
-    ])
-    await state.set_state(AddRecord.subcategory)
-    await call.message.edit_text("📂 Выбери подкатегорию:", reply_markup=kb)
-    await call.answer()
-
-@router.callback_query(F.data == "edit_amount")
-async def edit_amount(call: CallbackQuery, state: FSMContext):
-    await state.update_data(edit_field="amount")
-    await state.set_state(AddRecord.amount)
-    await call.message.edit_text("💵 Введи новую сумму:", reply_markup=back_btn("confirm_back"))
-    await call.answer()
-
-@router.callback_query(F.data == "edit_date")
-async def edit_date(call: CallbackQuery, state: FSMContext):
-    await state.update_data(edit_field="date")
-    await state.set_state(AddRecord.date)
-    await call.message.edit_text("📅 Введи новую дату (ДД.ММ.ГГГГ) или 'сегодня':", reply_markup=back_btn("confirm_back"))
-    await call.answer()
-
-# ===== Сохранение в БД =====
-@sync_to_async
-def save_transaction(telegram_id, data):
-    user = User.objects.get(telegram_id=telegram_id)
-    Transaction.objects.create(
-        user=user,
-        type=data["type"],
-        category=data.get("category", "Общее"),
-        subcategory=data.get("subcategory"),
-        amount=data["amount"],
-        date=data["date"]
+    await create_transaction(
+        call.from_user.id,
+        data["record_type"],
+        data["category"],
+        data.get("subcategory", "—"),
+        data["amount"]
     )
 
-# ===== Обработчики кнопок "Назад" =====
-@router.callback_query(F.data == "back_to_category")
-async def back_to_category(call: CallbackQuery, state: FSMContext):
-    cats = await get_categories()
-    kb = categories_keyboard(cats, extra_buttons=[
-        ("Пропустить", "skip_category"),
-        ("⬅️ Назад", "add_record")
-    ])
-    await state.set_state(AddRecord.category)
-    await call.message.edit_text("📂 Выбери категорию:", reply_markup=kb)
+    # Получаем актуальный баланс
+    balance = await get_balance(call.from_user.id)
+
+    await state.clear()
+    await call.message.edit_text(
+        f"✅ Запись успешно добавлена!\n💰 Текущий баланс: {balance:.2f}",
+        reply_markup=InlineKeyboardMarkup(
+            inline_keyboard=[[InlineKeyboardButton(text="📋 Меню", callback_data="main_menu")]]
+        )
+    )
     await call.answer()
 
-@router.callback_query(F.data == "back_to_subcategory")
-async def back_to_subcategory(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    cat = data.get("category", "Общее")
-    subs = await get_subcategories(cat)
-    kb = subcategories_keyboard(subs, cat, extra_buttons=[
-        ("Пропустить", "skip_subcategory"),
-        ("⬅️ Назад", "back_to_category")
-    ])
-    await state.set_state(AddRecord.subcategory)
-    await call.message.edit_text("📂 Выбери подкатегорию:", reply_markup=kb)
-    await call.answer()
 
-@router.callback_query(F.data == "back_to_amount")
-async def back_to_amount(call: CallbackQuery, state: FSMContext):
-    await state.set_state(AddRecord.amount)
-    await call.message.edit_text("💵 Введи сумму:", reply_markup=back_btn("back_to_subcategory"))
-    await call.answer()
-
-@router.callback_query(F.data == "back_to_date")
-async def back_to_date(call: CallbackQuery, state: FSMContext):
-    await state.set_state(AddRecord.date)
-    await call.message.edit_text("📅 Введи дату (ДД.ММ.ГГГГ) или 'сегодня'. Можно пропустить.", reply_markup=back_btn("back_to_amount"))
-    await call.answer()
-
-# ===== Возврат к подтверждению =====
-@router.callback_query(F.data == "confirm_back")
-async def confirm_back(call: CallbackQuery, state: FSMContext):
-    data = await state.get_data()
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Сохранить", callback_data="save_record")],
-        [InlineKeyboardButton(text="✏️ Изменить", callback_data="edit_record")],
-        [InlineKeyboardButton(text="❌ Отмена", callback_data="main_menu")]
-    ])
-    await state.set_state(AddRecord.confirm)
-    await call.message.edit_text(f"Проверь данные:\n\n{fmt_confirm_text(data)}", reply_markup=kb)
+# ===== Отмена =====
+@router.callback_query(F.data == "cancel_add_record")
+async def cancel_add_record(call: CallbackQuery, state: FSMContext):
+    await state.clear()
+    await call.message.edit_text("❌ Добавление записи отменено.", reply_markup=InlineKeyboardMarkup(
+        inline_keyboard=[[InlineKeyboardButton(text="📋 Меню", callback_data="main_menu")]]
+    ))
     await call.answer()

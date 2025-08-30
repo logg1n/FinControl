@@ -70,7 +70,7 @@ def get_ai_tip():
 def root_router(request):
     """Главная точка входа: отправляет на нужную страницу в зависимости от авторизации."""
     if request.user.is_authenticated:
-        return redirect("transaction_list")  # имя URL для списка транзакций
+        return redirect("transactions")  # имя URL для списка транзакций
     else:
         form = AuthenticationForm()
         tip_of_the_day = "💡 Ведите учёт расходов — это помогает находить утечки бюджета."
@@ -119,7 +119,7 @@ def transaction_add(request):
             if transaction.currency:
                 transaction.currency = transaction.currency.upper()
             transaction.save()
-            return redirect("transaction_list")
+            return redirect("transactions")
     else:
         form = TransactionForm()
 
@@ -146,7 +146,7 @@ def transaction_edit(request, pk):
             if transaction.currency:
                 transaction.currency = transaction.currency.upper()
             transaction.save()
-            return redirect("transaction_list")
+            return redirect("transactions")
     else:
         form = TransactionForm(instance=transaction)
 
@@ -165,7 +165,7 @@ def transaction_delete(request, pk):
     transaction = Transaction.objects.get(pk=pk, user=request.user)
     if request.method == "POST":
         transaction.delete()
-        return redirect("transaction_list")
+        return redirect("transactions")
     return render(request, "transactions/confirm_delete.html", {
         "transaction": transaction
     })
